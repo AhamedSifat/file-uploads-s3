@@ -22,6 +22,47 @@ type UploadFile = {
 const Uploader = () => {
   const [files, setFiles] = useState<UploadFile[]>([]);
 
+  async function removeFile(fileId: string) {
+    try {
+      const fileToRemove = files.find((f) => f.id === fileId);
+      if (fileToRemove) {
+        if (fileToRemove.objectUrl) {
+          URL.revokeObjectURL(fileToRemove.objectUrl);
+        }
+      }
+
+      setFiles((prevFiles) =>
+        prevFiles.map((f) => (f.id === fileId ? { ...f, isDeleting: true } : f))
+      );
+
+      const response = await fetch('/api/s3/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: fileToRemove?.key }),
+      });
+
+      if (!response.ok) {
+        toast.error('Failed to remove file from storage.');
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f.id === fileId ? { ...f, isDeleting: false, error: true } : f
+          )
+        );
+        return;
+      }
+
+      setFiles((prevFiles) => prevFiles.filter((f) => f.id !== fileId));
+      toast.success('File removed successfully');
+    } catch {
+      toast.error('Failed to remove file from storage.');
+      setFiles((prevFiles) =>
+        prevFiles.map((f) =>
+          f.id === fileId ? { ...f, isDeleting: false, error: true } : f
+        )
+      );
+    }
+  }
+
   const uploadFile = async (file: File) => {
     setFiles((prevFiles) =>
       prevFiles.map((f) => (f.file === file ? { ...f, uploading: true } : f))
@@ -204,8 +245,8 @@ const Uploader = () => {
                       variant='destructive'
                       size='icon'
                       className='absolute top-2 right-2'
-                      onClick={() => {}}
-                      disabled={false}
+                      onClick={() => removeFile(id)}
+                      disabled={uploading || isDeleting}
                     >
                       {isDeleting ? (
                         <Loader2 className='w-4 h-4 animate-spin' />
