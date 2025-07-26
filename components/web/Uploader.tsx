@@ -1,16 +1,48 @@
 'use client';
 import { useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { FileRejection, useDropzone } from 'react-dropzone';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
+import { toast } from 'sonner';
 
 const Uploader = () => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     console.log(acceptedFiles);
     // Do something with the files
   }, []);
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+  const rejectedFiles = useCallback((rejectedFiles: FileRejection[]) => {
+    if (rejectedFiles.length > 0) {
+      const tooManyFiles = rejectedFiles.find(
+        (file) => file.errors[0].code === 'too-many-files'
+      );
+
+      const fileTooLarge = rejectedFiles.find(
+        (file) => file.errors[0].code === 'file-too-large'
+      );
+
+      if (tooManyFiles) {
+        toast.error('You can only upload up to 5 files at a time.');
+      }
+      if (fileTooLarge) {
+        toast.error('One or more files are too large. Maximum size is 10 MB.');
+      }
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    onDropRejected: rejectedFiles,
+    maxFiles: 5,
+
+    maxSize: 10 * 1024 * 1024, // 10 MB
+    multiple: true,
+
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
+    },
+  });
 
   return (
     <Card
