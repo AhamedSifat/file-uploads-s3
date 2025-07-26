@@ -54,8 +54,52 @@ const Uploader = () => {
       }
 
       const { presignedUrl, key } = await response.json();
-    } catch (error) {
-      console.error('Error uploading file:', error);
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', presignedUrl, true);
+        xhr.setRequestHeader('Content-Type', file.type);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setFiles((prevFiles) =>
+              prevFiles.map((f) =>
+                f.file === file ? { ...f, progress, key } : f
+              )
+            );
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            setFiles((prevFiles) =>
+              prevFiles.map((f) =>
+                f.file === file
+                  ? { ...f, progress: 100, uploading: false, key }
+                  : f
+              )
+            );
+            toast.success('File uploaded successfully');
+            resolve();
+          } else {
+            reject(new Error('Failed to upload file'));
+          }
+        };
+        xhr.onerror = () => {
+          reject(new Error('Failed to upload file'));
+        };
+        xhr.send(file);
+      });
+    } catch {
+      toast.error('Failed to upload file');
+      setFiles((prevFiles) =>
+        prevFiles.map((f) =>
+          f.file === file
+            ? { ...f, uploading: false, progress: 0, error: true }
+            : f
+        )
+      );
     }
   };
 
