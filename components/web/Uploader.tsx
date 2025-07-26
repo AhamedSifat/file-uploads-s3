@@ -22,6 +22,15 @@ type UploadFile = {
 const Uploader = () => {
   const [files, setFiles] = useState<UploadFile[]>([]);
 
+  const uploadFile = async (file: File) => {
+    setFiles((prevFiles) =>
+      prevFiles.map((f) => (f.file === file ? { ...f, uploading: true } : f))
+    );
+
+    try {
+    } catch (error) {}
+  };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const newFiles = acceptedFiles.map((file) => ({
@@ -35,6 +44,8 @@ const Uploader = () => {
       }));
       setFiles((prev) => [...prev, ...newFiles]);
     }
+
+    acceptedFiles.forEach((file) => uploadFile(file));
   }, []);
 
   const rejectedFiles = useCallback((rejectedFiles: FileRejection[]) => {
