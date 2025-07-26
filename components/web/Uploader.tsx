@@ -28,7 +28,35 @@ const Uploader = () => {
     );
 
     try {
-    } catch (error) {}
+      const response = await fetch('/api/s3/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error('Failed to get presigned URL');
+
+        setFiles((prevFiles) =>
+          prevFiles.map((f) =>
+            f.file === file
+              ? { ...f, uploading: false, progress: 0, error: true }
+              : f
+          )
+        );
+        return;
+      }
+
+      const { presignedUrl, key } = await response.json();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
   };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
